@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // better-sqlite3 是原生模块，需外部化，避免被打包器处理
+  serverExternalPackages: ["better-sqlite3"],
 };
 
 export default nextConfig;
