@@ -122,7 +122,7 @@ export interface Shot {
   created_at: number;
 }
 
-export type ProviderProtocol = "openai" | "gemini" | "seedance" | "veo";
+export type ProviderProtocol = "openai" | "gemini" | "seedance" | "google";
 export type ModelCapability = "text" | "image" | "video";
 
 export interface Provider {
