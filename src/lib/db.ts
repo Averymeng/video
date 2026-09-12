@@ -51,6 +51,7 @@ db.exec(`
     first_frame  TEXT,
     last_frame   TEXT,
     video_url    TEXT,
+    task_id      TEXT,
     duration     REAL NOT NULL DEFAULT 0,
     aspect_ratio TEXT NOT NULL DEFAULT '9:16',
     status       TEXT NOT NULL DEFAULT 'pending',
@@ -116,6 +117,7 @@ export interface Shot {
   first_frame: string | null;
   last_frame: string | null;
   video_url: string | null;
+  task_id: string | null;
   duration: number;
   aspect_ratio: string;
   status: string;
@@ -132,8 +134,18 @@ export interface Provider {
   protocol: ProviderProtocol;
   base_url: string;
   api_key: string;
-  capabilities: ModelCapability[];
+  /** JSON 数组字符串，如 '["text","image"]' */
+  capabilities: string;
   created_at: number;
+}
+
+/** 解析供应商能力标签为数组 */
+export function providerCapabilities(p: Provider): ModelCapability[] {
+  try {
+    return JSON.parse(p.capabilities) as ModelCapability[];
+  } catch {
+    return [];
+  }
 }
 
 export interface Settings {

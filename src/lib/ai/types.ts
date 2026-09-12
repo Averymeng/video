@@ -28,7 +28,6 @@ export interface GenerateImageInput {
 }
 
 export interface GenerateVideoInput {
-  model: string;
   prompt: string;
   /** 首帧图片（base64 或 URL），可选 */
   firstFrame?: string;
