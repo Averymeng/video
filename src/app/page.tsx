@@ -1,69 +1,148 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Trash2 } from "lucide-react";
+import { api } from "@/lib/client";
+import type { Project } from "@/lib/types";
+import { useLanguage } from "@/components/language-provider";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+
+function formatDate(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+export default function HomePage() {
+  const { t } = useLanguage();
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  async function load() {
+    const data = await api<Project[]>("/api/projects");
+    setProjects(data);
+  }
+
+  useEffect(() => {
+    api<Project[]>("/api/projects").then(setProjects).catch(console.error);
+  }, []);
+
+  async function create() {
+    if (!name.trim() || creating) return;
+    setCreating(true);
+    try {
+      const p = await api<Project>("/api/projects", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+      setOpen(false);
+      setName("");
+      router.push(`/project/${p.id}/script`);
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function remove(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
+    if (!confirm(t.deleteProject + "?")) return;
+    await api(`/api/projects/${id}`, { method: "DELETE" });
+    load();
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="mx-auto w-full max-w-5xl px-4 py-8">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">
+          {t.myProjects}
+          <span className="ml-2 text-base font-normal text-muted-foreground">
+            ({projects.length})
+          </span>
+        </h1>
+        <Button onClick={() => setOpen(true)}>
+          <Plus className="h-4 w-4" />
+          {t.newProject}
+        </Button>
+      </div>
+
+      {projects.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-16 text-center text-muted-foreground">
+          {t.noProjects}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {projects.map((p) => (
+            <Card
+              key={p.id}
+              className="cursor-pointer transition-shadow hover:shadow-md"
+              onClick={() => router.push(`/project/${p.id}/script`)}
+            >
+              <CardContent className="flex items-start justify-between p-4">
+                <div className="min-w-0">
+                  <div className="truncate font-medium">{p.name}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {formatDate(p.created_at)}
+                  </div>
+                  <Badge
+                    variant={p.status === "completed" ? "default" : "secondary"}
+                    className="mt-2"
+                  >
+                    {p.status === "completed" ? t.completed : t.pending}
+                  </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={(e) => remove(e, p.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.newProject}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>{t.projectName}</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t.projectNamePlaceholder}
+              onKeyDown={(e) => e.key === "Enter" && create()}
+              autoFocus
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              {t.cancel}
+            </Button>
+            <Button onClick={create} disabled={!name.trim() || creating}>
+              {t.createProject}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
