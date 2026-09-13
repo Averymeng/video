@@ -1,7 +1,6 @@
 import db from "@/lib/db";
 import { error, getUserId, json, readBody } from "@/lib/api";
-import { generateText } from "@/lib/ai";
-import { resolveModel } from "@/lib/ai/resolve";
+import { generateTextGateway } from "@/lib/ai/gateway";
 import { buildScriptPrompt } from "@/lib/prompts";
 import type { Project } from "@/lib/db";
 
@@ -22,9 +21,12 @@ export async function POST(
   if (!idea) return error("请先输入故事创意");
 
   try {
-    const { provider, model } = resolveModel(userId, "text", body?.model);
     const { system, prompt } = buildScriptPrompt(idea);
-    const result = await generateText(provider, { model, system, prompt });
+    const result = await generateTextGateway(userId, "text", {
+      model: body?.model ?? "",
+      system,
+      prompt,
+    });
     return json({ script: result.text });
   } catch (e) {
     return error(e instanceof Error ? e.message : "剧本生成失败", 502);

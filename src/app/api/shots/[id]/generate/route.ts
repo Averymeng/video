@@ -1,6 +1,7 @@
 import db from "@/lib/db";
 import { error, getUserId, json, readBody } from "@/lib/api";
-import { createVideoTask, generateImage } from "@/lib/ai";
+import { createVideoTask } from "@/lib/ai";
+import { generateImageGateway, logAICall } from "@/lib/ai/gateway";
 import { resolveModel } from "@/lib/ai/resolve";
 import { buildFramePrompt, buildVideoPrompt } from "@/lib/prompts";
 import { readImageAsBase64, saveBase64Image, saveImageFromUrl } from "@/lib/storage";
@@ -30,10 +31,12 @@ export async function POST(req: Request, ctx: RouteContext<"/api/shots/[id]/gene
   try {
     // 首帧 / 尾帧 —— 同步图像生成
     if (type === "first_frame" || type === "last_frame") {
-      const { provider, model } = resolveModel(userId, "image", body?.model);
       const isLast = type === "last_frame";
       const prompt = buildFramePrompt(shot.description, charRef, isLast);
-      const img = await generateImage(provider, { model, prompt });
+      const img = await generateImageGateway(userId, "image", {
+        model: body?.model ?? "",
+        prompt,
+      });
       const url = img.base64
         ? saveBase64Image(img.base64)
         : img.url
@@ -51,11 +54,34 @@ export async function POST(req: Request, ctx: RouteContext<"/api/shots/[id]/gene
     const firstFrame = shot.first_frame
       ? readImageAsBase64(shot.first_frame)
       : undefined;
-    const task = await createVideoTask(provider, model, {
-      prompt: buildVideoPrompt(shot.description),
-      firstFrame,
-      aspectRatio: shot.aspect_ratio,
-    });
+    const started = Date.now();
+    let task;
+    try {
+      task = await createVideoTask(provider, model, {
+        prompt: buildVideoPrompt(shot.description),
+        firstFrame,
+        aspectRatio: shot.aspect_ratio,
+      });
+      logAICall({
+        userId,
+        capability: "video",
+        providerId: provider.id,
+        model,
+        status: "success",
+        latencyMs: Date.now() - started,
+      });
+    } catch (e) {
+      logAICall({
+        userId,
+        capability: "video",
+        providerId: provider.id,
+        model,
+        status: "error",
+        latencyMs: Date.now() - started,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw e;
+    }
 
     db.prepare("UPDATE shots SET task_id = ?, status = 'processing' WHERE id = ?").run(
       task.taskId,

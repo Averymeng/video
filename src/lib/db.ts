@@ -92,6 +92,18 @@ db.exec(`
     updated_at  INTEGER NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS ai_logs (
+    id          TEXT PRIMARY KEY,
+    user_id     TEXT NOT NULL,
+    capability  TEXT NOT NULL,
+    provider_id TEXT,
+    model       TEXT,
+    status      TEXT NOT NULL,
+    latency_ms  INTEGER,
+    error       TEXT,
+    created_at  INTEGER NOT NULL
+  );
 `);
 
 // ---------------------------------------------------------------------------

@@ -1,12 +1,15 @@
 // ---------------------------------------------------------------------------
-// 前端 API 客户端 —— 统一 fetch 封装 + 错误处理
+// 前端 API 客户端 —— 统一 fetch 封装 + 错误处理 + 浏览器指纹身份
 // ---------------------------------------------------------------------------
+
+import { getFingerprint } from "./fingerprint";
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      "x-user-id": getFingerprint(),
       ...(init?.headers ?? {}),
     },
   });

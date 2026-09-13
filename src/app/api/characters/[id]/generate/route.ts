@@ -1,7 +1,6 @@
 import db from "@/lib/db";
 import { error, getUserId, json, readBody } from "@/lib/api";
-import { generateImage } from "@/lib/ai";
-import { resolveModel } from "@/lib/ai/resolve";
+import { generateImageGateway } from "@/lib/ai/gateway";
 import { buildCharacterViewPrompt } from "@/lib/prompts";
 import { saveBase64Image, saveImageFromUrl } from "@/lib/storage";
 import type { Character } from "@/lib/db";
@@ -28,11 +27,13 @@ export async function POST(req: Request, ctx: RouteContext<"/api/characters/[id]
   const body = await readBody<{ model?: string }>(req);
 
   try {
-    const { provider, model } = resolveModel(userId, "image", body?.model);
     const updates: Partial<Record<ViewField, string>> = {};
     for (const { view, field } of VIEWS) {
       const prompt = buildCharacterViewPrompt(character.name, character.description, view);
-      const img = await generateImage(provider, { model, prompt });
+      const img = await generateImageGateway(userId, "image", {
+        model: body?.model ?? "",
+        prompt,
+      });
       const url = img.base64
         ? saveBase64Image(img.base64)
         : img.url

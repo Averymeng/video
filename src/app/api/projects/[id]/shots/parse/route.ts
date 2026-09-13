@@ -1,7 +1,6 @@
 import db from "@/lib/db";
 import { error, genId, getUserId, json, readBody } from "@/lib/api";
-import { generateText } from "@/lib/ai";
-import { resolveModel } from "@/lib/ai/resolve";
+import { generateTextGateway } from "@/lib/ai/gateway";
 import { buildShotDescriptionsPrompt } from "@/lib/prompts";
 import type { Character, Project } from "@/lib/db";
 
@@ -26,9 +25,12 @@ export async function POST(
   const body = await readBody<{ model?: string }>(req);
 
   try {
-    const { provider, model } = resolveModel(userId, "text", body?.model);
     const { system, prompt } = buildShotDescriptionsPrompt(project.script, charSummary);
-    const result = await generateText(provider, { model, system, prompt });
+    const result = await generateTextGateway(userId, "text", {
+      model: body?.model ?? "",
+      system,
+      prompt,
+    });
 
     const parsed = parseJsonArray(result.text);
     const insert = db.prepare(
