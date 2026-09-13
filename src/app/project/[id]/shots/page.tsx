@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { Clapperboard, Film, ImageIcon, Plus, Wand2 } from "lucide-react";
+import { Clapperboard, Film, ImageIcon, LayoutGrid, Plus } from "lucide-react";
 import { api } from "@/lib/client";
 import type { Shot } from "@/lib/types";
 import { useLanguage } from "@/components/language-provider";
@@ -189,7 +189,7 @@ export default function ShotsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <Button onClick={parse} disabled={parsing}>
-          <Wand2 className="h-4 w-4" />
+          <LayoutGrid className="h-4 w-4" />
           {parsing ? t.generating : t.aiParseShots}
         </Button>
         <Button variant="outline" onClick={batchFrames} disabled={busy === "batch-frames"}>

@@ -9,7 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: "Songti SC", "Noto Serif SC", "STSong", "SimSun", Georgia, serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,73 +48,75 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* 漫画纸本风 · 浅色：奶油纸白 + 墨黑 + 朱红 + 绀青 */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #faf6ee;
+  --foreground: #211d18;
+  --card: #fffdf5;
+  --card-foreground: #211d18;
+  --popover: #fffdf5;
+  --popover-foreground: #211d18;
+  --primary: #e14a33;
+  --primary-foreground: #fffdf5;
+  --secondary: #f0e8d8;
+  --secondary-foreground: #463f34;
+  --muted: #f3ede1;
+  --muted-foreground: #7d7464;
+  --accent: #2e4a62;
+  --accent-foreground: #f5f2e9;
+  --destructive: #c23b2c;
+  --border: #e4dccb;
+  --input: #e4dccb;
+  --ring: #e14a33;
+  --chart-1: #e14a33;
+  --chart-2: #2e4a62;
+  --chart-3: #d9a441;
+  --chart-4: #7a8450;
+  --chart-5: #211d18;
+  --radius: 0.4rem;
+  --sidebar: #f3ede1;
+  --sidebar-foreground: #211d18;
+  --sidebar-primary: #211d18;
+  --sidebar-primary-foreground: #fffdf5;
+  --sidebar-accent: #f0e8d8;
+  --sidebar-accent-foreground: #211d18;
+  --sidebar-border: #e4dccb;
+  --sidebar-ring: #e14a33;
 }
 
+/* 漫画纸本风 · 深色：墨夜 + 亮朱红 */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #161310;
+  --foreground: #f0eae0;
+  --card: #201b17;
+  --card-foreground: #f0eae0;
+  --popover: #201b17;
+  --popover-foreground: #f0eae0;
+  --primary: #f06a4e;
+  --primary-foreground: #1a140f;
+  --secondary: #2a241d;
+  --secondary-foreground: #f0eae0;
+  --muted: #2a241d;
+  --muted-foreground: #a79b89;
+  --accent: #5c88a8;
+  --accent-foreground: #14100c;
+  --destructive: #e05244;
+  --border: #3a3228;
+  --input: #3a3228;
+  --ring: #f06a4e;
+  --chart-1: #f06a4e;
+  --chart-2: #5c88a8;
+  --chart-3: #d9a441;
+  --chart-4: #8a9460;
+  --chart-5: #f0eae0;
+  --sidebar: #201b17;
+  --sidebar-foreground: #f0eae0;
+  --sidebar-primary: #f06a4e;
+  --sidebar-primary-foreground: #1a140f;
+  --sidebar-accent: #2a241d;
+  --sidebar-accent-foreground: #f0eae0;
+  --sidebar-border: #3a3228;
+  --sidebar-ring: #f06a4e;
 }
 
 @layer base {
@@ -123,6 +125,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* 极轻的纸张网点，呼应漫画网点质感 */
+    background-image: radial-gradient(rgba(33, 29, 24, 0.035) 1px, transparent 1.5px);
+    background-size: 7px 7px;
   }
   html {
     @apply font-sans;

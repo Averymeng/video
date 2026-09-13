@@ -15,7 +15,7 @@ export default async function ProjectLayout({
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6">
-      <h1 className="mb-4 text-xl font-bold">{project.name}</h1>
+      <h1 className="mb-4 font-heading text-2xl font-bold tracking-tight">{project.name}</h1>
       <WorkflowNav projectId={id} />
       <div className="mt-6">{children}</div>
     </div>

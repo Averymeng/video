@@ -25,7 +25,7 @@ function formatDate(ts: number): string {
 }
 
 export default function HomePage() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [open, setOpen] = useState(false);
@@ -64,23 +64,37 @@ export default function HomePage() {
     load();
   }
 
+  const heroTagline =
+    locale === "zh"
+      ? "从一句创意到完整剧本、美术资产、分镜——AI 帮你把灵感一步步变成漫剧。"
+      : "From a spark of an idea to a full script, art assets and storyboard — AI turns inspiration into a comic drama.";
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
-          {t.myProjects}
-          <span className="ml-2 text-base font-normal text-muted-foreground">
-            ({projects.length})
-          </span>
-        </h1>
-        <Button onClick={() => setOpen(true)}>
+      {/* Hero */}
+      <div className="mb-8 rounded-lg border-2 border-foreground bg-card p-8 shadow-[4px_4px_0_0_var(--foreground)] sm:p-10">
+        <span className="inline-flex items-center rounded-md border border-foreground bg-primary px-2.5 py-0.5 text-xs font-bold tracking-wide text-primary-foreground">
+          {locale === "zh" ? "漫剧工坊" : "COMIC WORKSHOP"}
+        </span>
+        <h1 className="mt-4 font-heading text-3xl font-bold tracking-tight sm:text-4xl">{t.appName}</h1>
+        <p className="mt-3 max-w-xl leading-relaxed text-muted-foreground">{heroTagline}</p>
+        <Button className="mt-6" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4" />
           {t.newProject}
         </Button>
       </div>
 
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">
+          {t.myProjects}
+          <span className="ml-2 text-base font-normal text-muted-foreground">
+            ({projects.length})
+          </span>
+        </h2>
+      </div>
+
       {projects.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-16 text-center text-muted-foreground">
+        <div className="rounded-xl border border-dashed p-16 text-center text-muted-foreground">
           {t.noProjects}
         </div>
       ) : (
@@ -88,30 +102,37 @@ export default function HomePage() {
           {projects.map((p) => (
             <Card
               key={p.id}
-              className="cursor-pointer transition-shadow hover:shadow-md"
+              className="group cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--foreground)]"
               onClick={() => router.push(`/project/${p.id}/script`)}
             >
-              <CardContent className="flex items-start justify-between p-4">
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{p.name}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {formatDate(p.created_at)}
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-secondary font-heading text-lg font-bold text-foreground">
+                      {p.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{p.name}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {formatDate(p.created_at)}
+                      </div>
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <Badge variant={p.script ? "default" : "secondary"}>
+                          {p.script ? t.script : t.pending}
+                        </Badge>
+                        {p.video_url && <Badge variant="outline">{t.video}</Badge>}
+                      </div>
+                    </div>
                   </div>
-                  <Badge
-                    variant={p.status === "completed" ? "default" : "secondary"}
-                    className="mt-2"
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+                    onClick={(e) => remove(e, p.id)}
                   >
-                    {p.status === "completed" ? t.completed : t.pending}
-                  </Badge>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-destructive"
-                  onClick={(e) => remove(e, p.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </CardContent>
             </Card>
           ))}

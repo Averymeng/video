@@ -155,7 +155,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8">
-      <h1 className="text-2xl font-bold">{t.settings}</h1>
+      <h1 className="font-heading text-2xl font-bold tracking-tight">{t.settings}</h1>
 
       <Card>
         <CardHeader className="pb-2">
@@ -164,15 +164,15 @@ export default function SettingsPage() {
         <CardContent className="space-y-3 p-4 pt-0">
           <div className="space-y-1">
             <Label>{t.textModel}</Label>
-            <Input value={text} onChange={(e) => setText(e.target.value)} />
+            <Input value={text} onChange={(e) => setText(e.target.value)} placeholder={t.modelIdPlaceholder} />
           </div>
           <div className="space-y-1">
             <Label>{t.imageModel}</Label>
-            <Input value={image} onChange={(e) => setImage(e.target.value)} />
+            <Input value={image} onChange={(e) => setImage(e.target.value)} placeholder={t.modelIdPlaceholder} />
           </div>
           <div className="space-y-1">
             <Label>{t.videoModel}</Label>
-            <Input value={video} onChange={(e) => setVideo(e.target.value)} />
+            <Input value={video} onChange={(e) => setVideo(e.target.value)} placeholder={t.modelIdPlaceholder} />
           </div>
           <Button onClick={saveDefaults} disabled={saving}>
             {saving ? t.generating : t.save}
