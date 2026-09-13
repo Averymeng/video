@@ -1,36 +1,153 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI 漫剧生成平台
 
-## Getting Started
+一个端到端的 **AI 漫画 / 动画剧集生成平台**：从一句创意，自动完成 **剧本 → 角色 → 分镜 → 逐帧生成 → 视频合成** 的完整创作链路。面向个人创作者，用「AI 工作流」替代传统逐帧手绘，一键产出竖屏漫剧成片。
 
-First, run the development server:
+## 核心能力
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **创意到剧本**：输入一句话创意，AI 扩写为结构化剧本
+- **角色解析 + 三视图**：从剧本自动提取角色设定，并生成四视角（正面 / 3/4 / 侧面 / 背面）立绘，保证全片角色一致性
+- **分镜拆解**：把剧本自动拆解为分镜描述，批量生成首帧 / 尾帧关键帧
+- **视频生成**：首尾帧驱动视频生成（异步任务，前端轮询），逐镜生成
+- **一键成片**：FFmpeg 把分镜视频按序拼接为 9:16 竖屏成片
+- **多模型接入**：统一抽象层屏蔽 OpenAI / Gemini / Seedance / Veo 协议差异，支持自定义供应商与默认模型
+- **模型网关**：多供应商故障转移 + 每次调用审计日志，为「评估体系」留出数据入口
+- **用户隔离**：浏览器指纹实现多用户数据隔离
+- **中英双语**：完整 i18n，UI 一键切换
+
+## 技术栈
+
+| 层 | 技术 |
+| --- | --- |
+| 全栈框架 | Next.js 16（App Router + Turbopack） |
+| 语言 | TypeScript 5 + React 19 |
+| 样式 | Tailwind CSS v4 + shadcn/ui（Base UI） |
+| 数据存储 | SQLite（better-sqlite3，WAL 模式） |
+| 异步任务 | SQLite 任务队列（视频合成） |
+| 视频合成 | FFmpeg |
+| AI 接入 | 多协议 Provider 抽象层 + Prompt 层 |
+| 国际化 | 自研 i18n 字典（zh / en，localStorage 持久化） |
+
+## 架构
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                        前端（React）                       │
+│  首页 → 剧本 → 角色 → 分镜 → 预览        模型设置          │
+└───────────────┬──────────────────────────────────────────┘
+                │ fetch（x-user-id 浏览器指纹）
+┌───────────────▼──────────────────────────────────────────┐
+│                     API 路由层（Next.js）                  │
+│  projects / characters / shots / providers / settings     │
+│  assemble（视频合成任务）   tasks（任务状态轮询）           │
+└───────┬──────────────────────────────┬───────────────────┘
+        │                              │
+┌───────▼────────┐            ┌────────▼─────────────────────┐
+│  SQLite 数据库  │            │  模型网关（拦截 + 故障转移）   │
+│ projects/…     │            │  解析模型 → 尝试供应商 → 审计  │
+│ tasks/ai_logs  │            └────────┬─────────────────────┘
+└────────────────┘                     │
+                          ┌────────────┴────────────┐
+                          │   AI Provider 抽象层     │
+                          │  openai / gemini         │  ← 文本 + 图像
+                          │  seedance / google(veo)  │  ← 视频（异步）
+                          └─────────────────────────┘
+                          │   Prompt 层（剧本/角色/分镜/帧模板）
+                          │   FFmpeg（视频拼接合成）
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 快速开始
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 环境要求
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js 20+
+- FFmpeg（用于视频合成，`brew install ffmpeg`）
+- 至少一个模型供应商的 API Key
 
-## Learn More
+### 安装与运行
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+打开 http://localhost:3000 ，进入右上角「模型设置」添加你的模型供应商。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 配置模型
 
-## Deploy on Vercel
+在「模型设置」页添加供应商，需填写：
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| 字段 | 说明 | 示例 |
+| --- | --- | --- |
+| 协议 | 供应商协议类型 | `openai` / `gemini` / `seedance` / `google` |
+| Base URL | API 地址 | `https://api.openai.com/v1` |
+| API Key | 密钥（仅存本地 SQLite） | `sk-...` |
+| 能力 | text / image / video | 勾选该供应商支持的能力 |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+添加后点击「拉取模型列表」选择模型，设为对应能力的默认模型。
+
+> ⚠️ **安全提示**：API Key 只保存在本地 `data/app.db`（已加入 `.gitignore`），**永远不会提交到仓库**。本仓库是公开仓库，请勿在代码中硬编码任何密钥。
+
+### 创作流程
+
+1. **新建项目** → 输入项目名称
+2. **剧本** → 输入创意，AI 生成剧本，可手动编辑保存
+3. **角色** → 「角色解析」提取角色 → 「生成三视图」出四视角立绘
+4. **分镜** → 「分镜拆解」→ 生成首尾帧 → 生成视频（异步轮询）
+5. **预览** → 「合成最终视频」一键出片，可直接下载
+
+## 目录结构
+
+```
+src/
+├── app/
+│   ├── page.tsx                    # 首页（项目列表）
+│   ├── settings/page.tsx           # 模型设置
+│   ├── project/[id]/               # 项目工作流（剧本/角色/分镜/预览）
+│   └── api/                        # API 路由层
+│       ├── projects/               # 项目 CRUD + 剧本/角色/分镜/合成
+│       ├── characters/             # 角色解析 + 三视图生成
+│       ├── shots/                  # 分镜首尾帧 / 视频生成 / 状态轮询
+│       ├── providers/              # 供应商 CRUD + 模型列表拉取
+│       ├── settings/               # 默认模型 / 语言
+│       └── tasks/                  # 异步任务状态（视频合成）
+├── lib/
+│   ├── db.ts                       # SQLite 连接 + 建表 + 轻量迁移
+│   ├── types.ts                    # 前后端共享类型
+│   ├── ai/
+│   │   ├── index.ts                # 统一入口（按协议分发）
+│   │   ├── openai.ts / gemini.ts   # 文本 + 图像适配器
+│   │   ├── video.ts                # Seedance / Veo 视频适配器
+│   │   ├── gateway.ts              # 模型网关（故障转移 + 审计）
+│   │   └── resolve.ts              # 供应商 / 模型解析
+│   ├── prompts.ts                  # Prompt 模板层
+│   ├── ffmpeg.ts                   # FFmpeg 视频拼接
+│   ├── storage.ts                  # 生成产物本地落盘
+│   ├── fingerprint.ts              # 浏览器指纹
+│   └── i18n.ts                     # 中英文案字典
+└── components/                     # UI 组件 + 工作流导航 + 语言切换
+```
+
+## 技术亮点
+
+1. **多协议统一抽象**：把 OpenAI / Gemini 的文本·图像协议与 Seedance / Veo 的「提交→轮询」异步视频协议统一为单一接口，上层业务无感知切换供应商。
+2. **模型网关 + 审计**：所有模型调用经网关层拦截，支持多供应商故障转移，并把每次调用（供应商 / 模型 / 耗时 / 结果）写入 `ai_logs`，为后续模型评估、成本核算提供数据基础。
+3. **SQLite 任务队列**：视频合成等长任务走任务队列（`tasks` 表），前端轮询状态，避免请求超时。
+4. **浏览器指纹隔离**：`浏览器属性哈希 + 持久化随机 ID` 生成稳定身份，通过 `x-user-id` 传递，后端按 `user_id` 隔离所有数据。
+5. **轻量迁移**：建表采用幂等 `CREATE TABLE IF NOT EXISTS` + `ALTER TABLE` 补列，旧库原地升级、多进程并发安全。
+
+## 里程碑
+
+| # | 里程碑 | 说明 |
+| --- | --- | --- |
+| 1 | 项目初始化 | Next.js 16 + SQLite + shadcn/ui 脚手架 |
+| 2 | 数据库层 | projects / characters / shots / providers / settings 表 |
+| 3 | AI Provider 层 | 多协议适配器 + 模型列表拉取 |
+| 4 | 核心 API | 项目 / 剧本 / 角色 / 分镜 路由 |
+| 5 | 前端页面 | 首页 + 剧本 + 角色 + 分镜 + 预览 + 模型设置 |
+| 6 | i18n | 中英文切换 |
+| 7 | 视频合成 | FFmpeg 拼接 + 任务队列 |
+| 8 | 用户隔离 + 模型网关 | 浏览器指纹 + 故障转移 + 审计日志 |
+
+## License
+
+MIT
