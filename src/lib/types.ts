@@ -12,8 +12,35 @@ export interface Project {
   status: ProjectStatus;
   /** 合成后的成片视频（由视频合成任务写入） */
   video_url: string | null;
+  /** 创作向导：题材 / 情感基调 / 主角设定 */
+  genre: string;
+  emotion: string;
+  protagonist: string;
+  /** 剧本元信息：标题 + 一句话梗概 */
+  script_title: string;
+  logline: string;
   created_at: number;
   updated_at: number;
+}
+
+export type AssetType = "character" | "location" | "prop";
+
+/** 资产：从剧本解析出的创作元素（人物 / 场景 / 道具），为图像/视频生成预留 */
+export interface Asset {
+  id: string;
+  project_id: string;
+  type: AssetType;
+  name: string;
+  description: string;
+  image_url: string | null;
+  created_at: number;
+}
+
+/** 剧本候选版本（AI 一次生成多个供用户选择） */
+export interface ScriptVersion {
+  title: string;
+  logline: string;
+  script: string;
 }
 
 export interface Character {

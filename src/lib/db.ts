@@ -1,4 +1,5 @@
 import Database from "better-sqlite3";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 
@@ -104,7 +105,23 @@ db.exec(`
     error       TEXT,
     created_at  INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS assets (
+    id          TEXT PRIMARY KEY,
+    project_id  TEXT NOT NULL,
+    type        TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    image_url   TEXT,
+    created_at  INTEGER NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  );
 `);
+
+// 内置供应商唯一约束：防止 build 阶段多 worker 并发 seed 时重复插入
+db.exec(
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_providers_builtin_unique ON providers(name) WHERE user_id = 'builtin';`,
+);
 
 // ---------------------------------------------------------------------------
 // 轻量迁移：为已存在的旧表补充后加的列（幂等）
@@ -121,18 +138,50 @@ function ensureColumn(table: string, column: string, ddl: string) {
   }
 }
 ensureColumn("projects", "video_url", "video_url TEXT");
+ensureColumn("projects", "genre", "genre TEXT NOT NULL DEFAULT ''");
+ensureColumn("projects", "emotion", "emotion TEXT NOT NULL DEFAULT ''");
+ensureColumn("projects", "protagonist", "protagonist TEXT NOT NULL DEFAULT ''");
+ensureColumn("projects", "script_title", "script_title TEXT NOT NULL DEFAULT ''");
+ensureColumn("projects", "logline", "logline TEXT NOT NULL DEFAULT ''");
+
+// ---------------------------------------------------------------------------
+// 内置模型供应商（后台自动接入）
+// 从环境变量 DEEPSEEK_API_KEY 读取密钥，seed 一个「builtin」用户级别的
+// DeepSeek 文本供应商 + 默认模型。这样用户打开平台即可直接生成，无需在前端配置。
+// 密钥只存在于服务器环境变量与本地数据库中（均已被 .gitignore 排除），绝不提交到仓库。
+// ---------------------------------------------------------------------------
+const BUILTIN_USER = "builtin";
+
+function seedBuiltinProvider() {
+  const key = process.env.DEEPSEEK_API_KEY;
+  if (!key) return;
+  const now = Date.now();
+  // INSERT OR IGNORE：providers 上的部分唯一索引 / settings 上的 UNIQUE 约束，
+  // 保证 build 阶段多 worker 并发 seed 时只会成功插入一条。
+  db.prepare(
+    "INSERT OR IGNORE INTO providers (id, user_id, name, protocol, base_url, api_key, capabilities, created_at) VALUES (?, ?, 'DeepSeek', 'openai', 'https://api.deepseek.com', ?, '[\"text\"]', ?)",
+  ).run(crypto.randomUUID(), BUILTIN_USER, key, now);
+  db.prepare(
+    "INSERT OR IGNORE INTO settings (id, user_id, default_text_model, default_image_model, default_video_model, language, updated_at) VALUES (?, ?, 'deepseek-v4-pro', NULL, NULL, 'zh', ?)",
+  ).run(crypto.randomUUID(), BUILTIN_USER, now);
+}
+
+seedBuiltinProvider();
 
 // ---------------------------------------------------------------------------
 // 类型与工具从独立的 types.ts 重新导出（供前后端共享，避免前端引入原生模块）
 // ---------------------------------------------------------------------------
 export { providerCapabilities } from "./types";
 export type {
+  Asset,
+  AssetType,
   Character,
   ModelCapability,
   Project,
   ProjectStatus,
   Provider,
   ProviderProtocol,
+  ScriptVersion,
   Settings,
   Shot,
   Task,

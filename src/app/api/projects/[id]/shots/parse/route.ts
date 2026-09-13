@@ -2,7 +2,7 @@ import db from "@/lib/db";
 import { error, genId, getUserId, json, readBody } from "@/lib/api";
 import { generateTextGateway } from "@/lib/ai/gateway";
 import { buildShotDescriptionsPrompt } from "@/lib/prompts";
-import type { Character, Project } from "@/lib/db";
+import type { Asset, Project } from "@/lib/db";
 
 // POST /api/projects/[id]/shots/parse —— AI 将剧本拆解为分镜描述并批量创建
 export async function POST(
@@ -18,8 +18,8 @@ export async function POST(
   if (!project.script.trim()) return error("请先生成或输入剧本");
 
   const characters = db
-    .prepare("SELECT * FROM characters WHERE project_id = ?")
-    .all(id) as Character[];
+    .prepare("SELECT * FROM assets WHERE project_id = ? AND type = 'character'")
+    .all(id) as Asset[];
   const charSummary = characters.map((c) => `${c.name}: ${c.description}`).join("\n");
 
   const body = await readBody<{ model?: string }>(req);

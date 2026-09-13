@@ -25,25 +25,42 @@ const DEFAULT_MODEL_FIELD: Record<ModelCapability, keyof Settings> = {
   video: "default_video_model",
 };
 
-/** 按声明顺序返回支持某能力的供应商列表 */
-export function providersByCapability(userId: string, capability: ModelCapability): Provider[] {
-  const all = db
-    .prepare("SELECT * FROM providers WHERE user_id = ? ORDER BY created_at ASC")
-    .all(userId) as Provider[];
-  return all.filter((p) => providerCapabilities(p).includes(capability));
+/** 内置供应商所属的虚拟用户：平台级后台配置，用户无需自行添加 */
+const BUILTIN_USER = "builtin";
+
+function userSettings(userId: string): Settings | undefined {
+  return db.prepare("SELECT * FROM settings WHERE user_id = ?").get(userId) as
+    | Settings
+    | undefined;
 }
 
-/** 解析最终使用的模型名：显式传入 > 设置默认 */
+/** 按声明顺序返回支持某能力的供应商列表（用户未配置时回落到内置供应商） */
+export function providersByCapability(userId: string, capability: ModelCapability): Provider[] {
+  const own = db
+    .prepare("SELECT * FROM providers WHERE user_id = ? ORDER BY created_at ASC")
+    .all(userId) as Provider[];
+  const ownCapable = own.filter((p) => providerCapabilities(p).includes(capability));
+  if (ownCapable.length > 0) return ownCapable;
+
+  const builtin = db
+    .prepare("SELECT * FROM providers WHERE user_id = ? ORDER BY created_at ASC")
+    .all(BUILTIN_USER) as Provider[];
+  return builtin.filter((p) => providerCapabilities(p).includes(capability));
+}
+
+/** 解析最终使用的模型名：显式传入 > 用户默认 > 内置默认 */
 export function resolveModelName(
   userId: string,
   capability: ModelCapability,
   explicit?: string,
 ): string {
-  const settings = db.prepare("SELECT * FROM settings WHERE user_id = ?").get(userId) as
-    | Settings
-    | undefined;
+  const own = userSettings(userId);
+  const builtin = userSettings(BUILTIN_USER);
+  const field = DEFAULT_MODEL_FIELD[capability];
   const model =
-    explicit?.trim() || (settings ? (settings[DEFAULT_MODEL_FIELD[capability]] as string | null) : null);
+    explicit?.trim() ||
+    (own ? (own[field] as string | null) : null) ||
+    (builtin ? (builtin[field] as string | null) : null);
   if (!model) {
     throw new Error(`未选择「${capability}」默认模型，请先在设置页配置`);
   }

@@ -5,7 +5,7 @@ import { generateImageGateway, logAICall } from "@/lib/ai/gateway";
 import { resolveModel } from "@/lib/ai/resolve";
 import { buildFramePrompt, buildVideoPrompt } from "@/lib/prompts";
 import { readImageAsBase64, saveBase64Image, saveImageFromUrl } from "@/lib/storage";
-import type { Character, Shot } from "@/lib/db";
+import type { Asset, Shot } from "@/lib/db";
 
 type GenerateType = "first_frame" | "last_frame" | "video";
 
@@ -24,8 +24,8 @@ export async function POST(req: Request, ctx: RouteContext<"/api/shots/[id]/gene
 
   // 该分镜所在项目的角色设定（用于角色一致性参考）
   const characters = db
-    .prepare("SELECT * FROM characters WHERE project_id = ?")
-    .all(shot.project_id) as Character[];
+    .prepare("SELECT * FROM assets WHERE project_id = ? AND type = 'character'")
+    .all(shot.project_id) as Asset[];
   const charRef = characters.map((c) => `${c.name}: ${c.description}`).join("; ");
 
   try {

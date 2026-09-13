@@ -1,3 +1,5 @@
+import type { AssetType } from "./types";
+
 // ---------------------------------------------------------------------------
 // Prompt 层 —— 各创作环节的提示词模板集中管理
 // 对应 JD 中的「提示词撰写」能力：把专业创作流程翻译成可复用的结构化 prompt。
@@ -8,56 +10,74 @@ export interface PromptPair {
   prompt: string;
 }
 
-/** 剧本生成 */
-export function buildScriptPrompt(userIdea: string): PromptPair {
+/** 创作向导的题材/情感/主角选项 */
+export interface ScriptOptions {
+  genre?: string;
+  emotion?: string;
+  protagonist?: string;
+}
+
+/** 剧本生成（一次产出多个候选版本） */
+export function buildScriptVersionsPrompt(idea: string, options: ScriptOptions = {}): PromptPair {
+  const { genre, emotion, protagonist } = options;
   return {
     system:
       "你是一名资深的短剧/漫剧编剧，擅长创作节奏紧凑、画面感强的竖屏短剧剧本。",
     prompt: [
-      "请根据下面的创意，创作一个完整的漫剧剧本。要求：",
-      "1. 以英文剧本格式输出（类似影视行业标准），包含 SCENE 序号、场景标题（INT./EXT. + 地点 + 时间）、舞台指示（动作/镜头/情绪）。",
-      "2. 有清晰的角色对话，角色名用大写标注。",
-      "3. 总时长控制在 1-3 分钟竖屏短剧的体量，8 个场景以内。",
-      "4. 剧情要有起承转合和明确的情绪钩子。",
+      "请根据下面的创意，创作 3 个风格走向不同的剧本候选版本。要求：",
+      "1. 每个版本包含 title（中文标题）、logline（一句话梗概，抓人眼球）、script（完整剧本）。",
+      "2. 剧本使用标准格式：SCENE 序号、场景标题（内景/外景 + 地点 + 时间）、舞台指示、角色对话（角色名大写标注）。",
+      "3. 单个体量控制在 1-3 分钟竖屏短剧，8 个场景以内。",
+      "4. 三个版本在核心设定、情绪走向或反转点上要有明显差异。",
+      "5. 剧本正文用中文书写。",
+      genre ? `题材类型：${genre}` : "",
+      emotion ? `情感基调：${emotion}` : "",
+      protagonist ? `主角设定：${protagonist}` : "",
       "",
-      `创意：${userIdea}`,
-    ].join("\n"),
+      "只返回 JSON，不要任何额外文字。格式：",
+      '{"versions":[{"title":"...","logline":"...","script":"..."}]}',
+      "",
+      `创意：${idea}`,
+    ].filter(Boolean).join("\n"),
   };
 }
 
-/** 从剧本解析角色列表（要求返回 JSON） */
-export function buildCharacterParsePrompt(script: string): PromptPair {
+/** 从剧本解析美术资产（人物 / 场景 / 道具） */
+export function buildAssetParsePrompt(script: string): PromptPair {
   return {
-    system: "你是专业的角色设计师，能从剧本中准确提取角色并撰写人物设定。",
+    system: "你是专业的影视美术设定师，能从剧本中提取完整的美术资产（人物、场景、道具）。",
     prompt: [
-      "从以下剧本中提取所有出场角色。对每个角色：",
-      "1. name：角色名（英文）",
-      "2. description：外貌与体型描述（英文，含年龄、身高体型、发型发色、服装、气质，50 词左右）",
+      "从以下剧本中提取所有美术资产，分为三类：",
+      "1. characters（人物）：name 角色名（中文）、description 外貌与气质（中文，含年龄、身高体型、发型发色、服装、气质，50 字左右）",
+      "2. locations（场景）：name 场景名（中文）、description 环境（中文，空间结构、光线氛围、时代背景，50 字左右）",
+      "3. props（道具）：name 道具名（中文）、description 外观用途（中文，外观、材质、用途，30 字左右）",
       "",
-      "只返回 JSON 数组，不要任何额外文字。格式：",
-      '[{"name": "...", "description": "..."}]',
+      "所有名称与描述均用中文输出。",
+      "只返回 JSON 对象，不要任何额外文字。格式：",
+      '{"characters":[{"name":"...","description":"..."}],"locations":[{"name":"...","description":"..."}],"props":[{"name":"...","description":"..."}]}',
       "",
       `剧本：\n${script}`,
     ].join("\n"),
   };
 }
 
-/** 角色单视角立绘图像 prompt */
-export function buildCharacterViewPrompt(
-  name: string,
-  description: string,
-  view: "front" | "three_quarter" | "side" | "back",
-): string {
-  const viewMap = {
-    front: "front view, facing camera, full body",
-    three_quarter: "three-quarter view (3/4 angle), full body",
-    side: "side profile view, full body",
-    back: "back view, full body",
-  };
+/** 资产生成图像 prompt —— 按类型输出人物立绘 / 场景概念图 / 道具设定图 */
+const ASSET_IMAGE_STYLE: Record<AssetType, string> = {
+  character: "full-body character design sheet, front view, standing pose, clean lineart",
+  location: "environment concept art, establishing shot, wide composition, atmospheric lighting",
+  prop: "prop design sheet, isolated on a plain light background, detailed",
+};
+
+export function buildAssetImagePrompt(asset: {
+  type: AssetType;
+  name: string;
+  description: string;
+}): string {
   return [
-    `${viewMap[view]}, character design sheet, single character`,
-    `character: ${name}, ${description}`,
-    "anime style, clean line art, flat colors, plain neutral background, high quality, consistent character design",
+    ASSET_IMAGE_STYLE[asset.type],
+    `name: ${asset.name}`,
+    asset.description,
+    "anime style, high quality, consistent art style, no text, no watermark",
   ].join(", ");
 }
 
@@ -70,8 +90,9 @@ export function buildShotDescriptionsPrompt(
     system: "你是一名专业分镜师，擅长把剧本拆解成可执行的分镜脚本。",
     prompt: [
       "将以下剧本拆解为分镜列表。对每个分镜：",
-      "1. description：英文画面描述（镜头景别、构图、人物动作与神态、环境），50 词左右",
+      "1. description：画面描述（用中文，镜头景别、构图、人物动作与神态、环境），50 字左右",
       "",
+      "画面描述用中文输出。",
       "只返回 JSON 数组，不要任何额外文字。格式：",
       '[{"description": "..."}]',
       "",
