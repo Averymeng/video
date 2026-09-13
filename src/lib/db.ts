@@ -25,6 +25,7 @@ db.exec(`
     name        TEXT NOT NULL,
     script      TEXT NOT NULL DEFAULT '',
     status      TEXT NOT NULL DEFAULT 'draft',
+    video_url   TEXT,
     created_at  INTEGER NOT NULL,
     updated_at  INTEGER NOT NULL
   );
@@ -79,7 +80,35 @@ db.exec(`
     language             TEXT NOT NULL DEFAULT 'zh',
     updated_at           INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS tasks (
+    id          TEXT PRIMARY KEY,
+    project_id  TEXT NOT NULL,
+    type        TEXT NOT NULL DEFAULT 'assemble',
+    status      TEXT NOT NULL DEFAULT 'pending',
+    output_url  TEXT,
+    error       TEXT,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  );
 `);
+
+// ---------------------------------------------------------------------------
+// 轻量迁移：为已存在的旧表补充后加的列（幂等）
+// 新建库走 CREATE TABLE；旧库（如本地 data/app.db）走 ALTER TABLE。
+// ---------------------------------------------------------------------------
+function ensureColumn(table: string, column: string, ddl: string) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (cols.some((c) => c.name === column)) return;
+  try {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+  } catch (e) {
+    // build 阶段多 worker 并发可能已由其他进程加上该列，忽略「重复列」错误
+    if (!(e instanceof Error && /duplicate column/i.test(e.message))) throw e;
+  }
+}
+ensureColumn("projects", "video_url", "video_url TEXT");
 
 // ---------------------------------------------------------------------------
 // 类型与工具从独立的 types.ts 重新导出（供前后端共享，避免前端引入原生模块）
@@ -94,6 +123,7 @@ export type {
   ProviderProtocol,
   Settings,
   Shot,
+  Task,
 } from "./types";
 
 export default db;

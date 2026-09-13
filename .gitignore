@@ -46,3 +46,6 @@ next-env.d.ts
 *.db-journal
 *.db-wal
 *.db-shm
+
+# generated assets (runtime output: images / videos / assembled clips)
+/public/generated/

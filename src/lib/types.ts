@@ -10,6 +10,8 @@ export interface Project {
   name: string;
   script: string;
   status: ProjectStatus;
+  /** 合成后的成片视频（由视频合成任务写入） */
+  video_url: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -73,5 +75,17 @@ export interface Settings {
   default_image_model: string | null;
   default_video_model: string | null;
   language: string;
+  updated_at: number;
+}
+
+/** 异步任务（如视频合成），由 SQLite 任务队列驱动 */
+export interface Task {
+  id: string;
+  project_id: string;
+  type: string;
+  status: string;
+  output_url: string | null;
+  error: string | null;
+  created_at: number;
   updated_at: number;
 }

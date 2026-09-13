@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Clapperboard, Download, Video } from "lucide-react";
 import { api } from "@/lib/client";
-import type { Shot } from "@/lib/types";
+import type { Project, Shot } from "@/lib/types";
 import { useLanguage } from "@/components/language-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,41 +14,91 @@ export default function PreviewPage() {
   const { t } = useLanguage();
 
   const [shots, setShots] = useState<Shot[]>([]);
+  const [finalVideo, setFinalVideo] = useState<string | null>(null);
+  const [assembling, setAssembling] = useState(false);
   const [message, setMessage] = useState("");
 
+  const load = useCallback(async () => {
+    const [p, s] = await Promise.all([
+      api<Project>(`/api/projects/${id}`),
+      api<Shot[]>(`/api/projects/${id}/shots`),
+    ]);
+    setFinalVideo(p.video_url);
+    setShots(s);
+  }, [id]);
+
   useEffect(() => {
-    api<Shot[]>(`/api/projects/${id}/shots`)
-      .then(setShots)
+    Promise.all([api<Project>(`/api/projects/${id}`), api<Shot[]>(`/api/projects/${id}/shots`)])
+      .then(([p, s]) => {
+        setFinalVideo(p.video_url);
+        setShots(s);
+      })
       .catch(console.error);
   }, [id]);
 
   const completed = shots.filter((s) => s.video_url).length;
 
-  function assemble() {
-    // 视频合成在「里程碑 7 —— FFmpeg + 任务队列」中实现
-    setMessage("视频合成功能将在下一里程碑（FFmpeg + 任务队列）中实现");
+  async function assemble() {
+    setAssembling(true);
+    setMessage("");
+    try {
+      const res = await api<{ taskId: string }>(`/api/projects/${id}/assemble`, {
+        method: "POST",
+      });
+      pollTask(res.taskId);
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "合成失败");
+      setAssembling(false);
+    }
   }
 
-  function download() {
-    setMessage("素材打包下载将在视频合成里程碑中一并实现");
+  async function pollTask(taskId: string) {
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 3000));
+      try {
+        const res = await api<{ status: string; outputUrl?: string; error?: string }>(
+          `/api/tasks/${taskId}`,
+        );
+        if (res.status === "completed" || res.status === "failed") {
+          setAssembling(false);
+          if (res.status === "failed") setMessage(res.error ?? "合成失败");
+          else setMessage(t.saveSuccess);
+          load();
+          return;
+        }
+      } catch {
+        setAssembling(false);
+        return;
+      }
+    }
   }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Button onClick={assemble} disabled={completed === 0}>
+        <Button onClick={assemble} disabled={assembling || completed === 0}>
           <Video className="h-4 w-4" />
-          {t.assembleVideo}
+          {assembling ? t.assembling : t.assembleVideo}
         </Button>
-        <Button variant="outline" onClick={download}>
-          <Download className="h-4 w-4" />
-          {t.downloadAssets}
-        </Button>
+        {finalVideo ? (
+          <Button variant="outline" render={<a href={finalVideo} download />}>
+            <Download className="h-4 w-4" />
+            {t.downloadAssets}
+          </Button>
+        ) : null}
         <span className="text-sm text-muted-foreground">
           {completed}/{shots.length}
         </span>
         {message && <span className="text-sm text-muted-foreground">{message}</span>}
       </div>
+
+      {finalVideo && (
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <video src={finalVideo} controls className="mx-auto max-h-[70vh] w-auto" />
+          </CardContent>
+        </Card>
+      )}
 
       {shots.length === 0 ? (
         <div className="rounded-lg border border-dashed p-16 text-center text-muted-foreground">

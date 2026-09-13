@@ -66,6 +66,7 @@ export const dict = {
     saveSuccess: "保存成功",
     generateSuccess: "生成成功",
     generating: "生成中...",
+    assembling: "合成中...",
   },
   en: {
     appName: "AI Comic Builder",
@@ -128,6 +129,7 @@ export const dict = {
     saveSuccess: "Saved",
     generateSuccess: "Generated",
     generating: "Generating...",
+    assembling: "Assembling...",
   },
 } as const;
 
